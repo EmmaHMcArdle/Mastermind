@@ -138,7 +138,9 @@ class Game
   sleep(1)
   # Start of game for player
   start = MastermindBoard.new
+  puts ""
   player_choice = start.get_player_choice()
+  puts ""
   cmp = Computer.new
   human = Human.new
   color_list = cmp.get_color_list
@@ -147,12 +149,17 @@ class Game
     balls_picked = cmp.comp_choose_colors()
     puts "The balls have been selected 
           O O O O"
+    puts ""
+    puts "If you recieve a 'red peg' it means you have one right ball but in the wrong position."
+    puts "If you recieve a 'white peg' it means you have one right ball in the right position."
+    puts"If you have four white pegs, you win!"
     guesses = 1
     #loops 12 times to allow the player to guess
     while guesses < 13
+      puts ""
       puts "Turn: #" + guesses.to_s + " out of 12"
-      
       guessed_balls = human.human_choose_colors(color_list)
+      puts ""
       start.update_balls(guessed_balls)
       all_pegs = cmp.check_guess(balls_picked, guessed_balls)
       guesses += 1
