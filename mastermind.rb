@@ -2,25 +2,17 @@
 class MastermindBoard
 
   def initialize
-    puts "Let's play Mastermind!"
-    $guessed_correctly = false;
-    sleep(1)
+    @player_choice = 'Unknown'
   end
   
   #Lets player decide what role they want to play
   def get_player_choice()
-    @player_choice = 'Unknown'
-    until @player_choice == 'code breaker' || @player_choice == 'code maker' do
+    until @player_choice == 'Code Breaker' || @player_choice == 'Code Maker' do
       puts "Do you want to be the 'Code Maker' or the 'Code Breaker'?"
-      @player_choice = gets.chomp().downcase
+      @player_choice = gets.chomp().split(/ |\_/).map(&:capitalize).join(" ")
     end
-    if @player_choice == 'code breaker'
-      puts "Okay, you are the Code Breaker"
+      puts "Okay, you are the #{@player_choice}"
       return @player_choice
-    else
-      puts "Okay, you are the Code Maker"
-      return @player_choice
-    end
   end     
   
   #Shows depiction of what balls were chosen by the player
@@ -53,58 +45,64 @@ class Computer
   
   #Initializing class variables
   def initialize()
-    temp_balls = Array.new
-    @@ball1 = 'blank'
-    @@ball2 = 'blank'
-    @@ball3 = 'blank'
-    @@ball4 = 'blank'
-    @@color_list = ["white", "red", "yellow", "blue", "green", "pink"]
+    @all_pegs = Array.new
+    @ball1 = 'blank'
+    @ball2 = 'blank'
+    @ball3 = 'blank'
+    @ball4 = 'blank'
+    @color_list = ["white", "red", "yellow", "blue", "green", "pink"]
+  end
+
+  def get_color_list()
+    return @color_list
   end
 
   #Computer chooses balls either as code breaker or code maker
   def comp_choose_colors(all_pegs = ['empty'])
     if all_pegs[0] != 'empty' && all_pegs.length() == 0
-      for i in 0..@@color_list.length()
-        @@chosen_balls.each do |chosen_ball|
-          if chosen_ball.eql?(@@color_list[i])
-            @@color_list.delete_at(i)
+      for i in 0..@color_list.length()
+        @chosen_balls.each do |chosen_ball|
+          if chosen_ball.eql?(@color_list[i])
+            @color_list.delete_at(i)
           end
         end
       end
     end  
-    @@ball1 = @@color_list.sample
-    @@ball2 = @@color_list.sample
-    @@ball3 = @@color_list.sample
-    @@ball4 = @@color_list.sample
-    @@chosen_balls = [@@ball1, @@ball2, @@ball3, @@ball4]
-  return @@chosen_balls
+    @ball1 = @color_list.sample
+    @ball2 = @color_list.sample
+    @ball3 = @color_list.sample
+    @ball4 = @color_list.sample
+    @chosen_balls = [@ball1, @ball2, @ball3, @ball4]
+    return @chosen_balls
   end
 
-  #Checks to see if the code breakers balls is the same as the code maker's balls
+  #def minimax()
+
+  #Checks to see if the code breaker's balls is the same as the code maker's balls
   def check_guess(balls_picked, guessed_balls)
     white_peg = 0
-    all_pegs = Array.new
-    @balls_picked = [balls_picked[0], balls_picked[1], balls_picked[2], balls_picked[3]]
+    @all_pegs.clear
+    balls_picked = [balls_picked[0], balls_picked[1], balls_picked[2], balls_picked[3]]
     for i in 0...4
-      if guessed_balls[i].eql?(@balls_picked[i])
-        @balls_picked[i] = "used"
+      if guessed_balls[i].eql?(balls_picked[i])
+        balls_picked[i] = "used"
         guessed_balls[i] = "used"
-        all_pegs.append("white peg")
+        @all_pegs.append("white peg")
         white_peg += 1
       end
     end
     guessed_balls.each do |guessed_ball|
-      @balls_picked.each do |ball_picked|
+      balls_picked.each do |ball_picked|
         if guessed_ball.eql?(ball_picked) && ball_picked != "used" && guessed_ball != "used"
           ball_picked = "used"
           guessed_ball = "used"
-          all_pegs.append("red peg")
+          @all_pegs.append("red peg")
           break
         end
       end
     end
-    print "The computer returned: " + all_pegs.shuffle.to_s + "\n"
-    return all_pegs
+    print "The computer returned: " + @all_pegs.shuffle.to_s + "\n"
+    return @all_pegs
   end
 end  
 
@@ -113,44 +111,48 @@ end
 class Human
   
   def initialize
-    @@guessed_balls = Array.new
+    @guessed_balls = Array.new
   end
 
   #Returns what balls the player choses as the code maker or the code breaker
-  def human_choose_colors()
+  def human_choose_colors(color_list)
     i = 1
     while i < 5
       puts "What is the color of the #" + i.to_s + " ball? (white, red, yellow, blue, green, pink)"
         ball = gets.chomp().downcase().strip();
-        if ball == "blue" || ball == "pink" || ball == "white" || ball == "red" || ball == "green" || ball == "yellow"
-          @@guessed_balls[i-1] = ball
+        if color_list.any? {|color| color == ball }#ball == "blue" || ball == "pink" || ball == "white" || ball == "red" || ball == "green" || ball == "yellow"
+          @guessed_balls[i-1] = ball
           i += 1
         else
           puts "You typed in an incorrect color, please try again"
         end  
     end
-    return @@guessed_balls
+    return @guessed_balls
   end
 
 end
 
 #Game class
 class Game
-  #Start of game for player
+  puts "Let's play Mastermind!"
+  sleep(1)
+  # Start of game for player
   start = MastermindBoard.new
   player_choice = start.get_player_choice()
-  #If the player chose to be the code breaker
-  if player_choice == 'code breaker'  
-    cmp = Computer.new
+  cmp = Computer.new
+  human = Human.new
+  color_list = cmp.get_color_list
+  # If the player is the code breaker
+  if player_choice == 'Code Breaker'
     balls_picked = cmp.comp_choose_colors()
     puts "The balls have been selected 
           O O O O"
     guesses = 1
     #loops 12 times to allow the player to guess
-    while guesses < 13 && $guessed_correctly == false
+    while guesses < 13
       puts "Turn: #" + guesses.to_s + " out of 12"
-      human = Human.new
-      guessed_balls = human.human_choose_colors()
+      
+      guessed_balls = human.human_choose_colors(color_list)
       start.update_balls(guessed_balls)
       all_pegs = cmp.check_guess(balls_picked, guessed_balls)
       guesses += 1
@@ -170,12 +172,10 @@ class Game
    exit
   #If the player chose to be the code maker
   else
-    human = Human.new
-    balls_picked = human.human_choose_colors()
+    balls_picked = human.human_choose_colors(color_list)
     guesses = 1
-    cmp = Computer.new
     #Loops 12 times to allow computer to guess
-    while guesses < 13 && $guessed_correctly == false
+    while guesses < 13
       guess = cmp.comp_choose_colors()
       puts "Turn: #" + guesses.to_s + " out of 12"
       start.update_balls(guess)
