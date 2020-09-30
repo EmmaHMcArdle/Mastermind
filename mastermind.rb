@@ -7,8 +7,8 @@ class MastermindBoard
   
   #Lets player decide what role they want to play
   def get_player_choice()
-    until @player_choice == 'Code Breaker' || @player_choice == 'Code Maker' do
-      puts "Do you want to be the 'Code Maker' or the 'Code Breaker'?"
+    until @player_choice.include?('Breaker') || @player_choice.include?("Maker") do
+      puts "Do you want to be the Code 'Maker' or the 'Breaker'?"
       @player_choice = gets.chomp().split(/ |\_/).map(&:capitalize).join(" ")
     end
       puts "Okay, you are the #{@player_choice}"
@@ -38,73 +38,100 @@ class MastermindBoard
     end
     puts "\n"
   end   
- 
+
 end
 
 class Computer
   
   #Initializing class variables
+
+  attr_accessor :color_list
+
   def initialize()
     @all_pegs = Array.new
-    @ball1 = 'blank'
-    @ball2 = 'blank'
-    @ball3 = 'blank'
-    @ball4 = 'blank'
+    @chosen_balls = []
     @color_list = ["white", "red", "yellow", "blue", "green", "pink"]
+    @all_answers = @color_list.repeated_permutation(4).to_a
   end
-
-  def get_color_list()
-    return @color_list
-  end
+ 
 
   #Computer chooses balls either as code breaker or code maker
-  def comp_choose_colors(all_pegs = ['empty'])
-    if all_pegs[0] != 'empty' && all_pegs.length() == 0
-      for i in 0..@color_list.length()
-        @chosen_balls.each do |chosen_ball|
-          if chosen_ball.eql?(@color_list[i])
-            @color_list.delete_at(i)
-          end
-        end
-      end
-    end  
-    @ball1 = @color_list.sample
-    @ball2 = @color_list.sample
-    @ball3 = @color_list.sample
-    @ball4 = @color_list.sample
-    @chosen_balls = [@ball1, @ball2, @ball3, @ball4]
+  def comp_choose_colors()
+    @chosen_balls = 4.times.map { @color_list.sample }
+    #puts "These are the chosen balls:" +  @chosen_balls.to_s
     return @chosen_balls
   end
 
-  #def minimax()
-
-  #Checks to see if the code breaker's balls is the same as the code maker's balls
-  def check_guess(balls_picked, guessed_balls)
-    white_peg = 0
-    @all_pegs.clear
-    balls_picked = [balls_picked[0], balls_picked[1], balls_picked[2], balls_picked[3]]
-    for i in 0...4
-      if guessed_balls[i].eql?(balls_picked[i])
-        balls_picked[i] = "used"
-        guessed_balls[i] = "used"
-        @all_pegs.append("white peg")
-        white_peg += 1
+  def comp_guess_colors(guesses, all_pegs)
+    if guesses == 1
+      return @chosen_balls = ['red', 'red', 'pink', 'pink']
+    end
+    @all_answers.delete_if do |answer|
+      answer == @chosen_balls
+    end
+    if all_pegs.length() == 0
+      @chosen_balls.each do |ball|
+        @all_answers.reject! do |possibility_arr|
+          possibility_arr.include?(ball)
+        end 
+      end    
+    elsif all_pegs.include?("white peg")
+      @all_answers.delete_if do |answer|
+        answer[0] != @chosen_balls[0] && answer[1] != @chosen_balls[1] && answer[2] != @chosen_balls[2] && answer[3] != @chosen_balls[3]
+          end
+    elsif all_pegs.include?("red peg")  
+      if all_pegs.none? { |peg| peg == "white peg" }
+        for i in 0...4 do
+          @all_answers.delete_if do |answer|
+              answer[i] == @chosen_balls[i]
+          end
+        end
       end
     end
-    guessed_balls.each do |guessed_ball|
-      balls_picked.each do |ball_picked|
-        if guessed_ball.eql?(ball_picked) && ball_picked != "used" && guessed_ball != "used"
-          ball_picked = "used"
-          guessed_ball = "used"
+    #print  @all_answers
+    #print "\n"
+    puts "Possible answers left: " +  @all_answers.length.to_s  
+    random = rand(0...@all_answers.length())
+    @chosen_balls =  @all_answers[random]
+  end
+
+  #Checks to see i f the code breaker's balls is the same as the code maker's balls
+  def check_guess(balls_picked, guessed_balls, player_choice)
+    white_peg = 0
+    @all_pegs.clear
+    temps_guessed = [guessed_balls[0], guessed_balls[1], guessed_balls[2], guessed_balls[3]]
+    temps_picked = [balls_picked[0], balls_picked[1], balls_picked[2], balls_picked[3]]
+    for i in 0...4
+      if temps_guessed[i].eql?(temps_picked[i])
+        temps_picked[i] = "used"
+        temps_guessed[i] = "used"
+        @all_pegs.append("white peg")
+        white_peg += 1
+        if white_peg == 4
+          if player_choice == "Breaker"
+            puts "You won!"
+          else
+            puts "Computer won!"
+          end
+        exit
+        end
+      end
+    end
+    for i in 0...4
+      for j in 0...4
+        if temps_guessed[i].eql?(temps_picked[j]) && temps_picked[j] != "used" && temps_guessed[i] != "used"
+          temps_picked[j] = "used"
+          temps_guessed[i] = "used"
           @all_pegs.append("red peg")
           break
         end
       end
     end
-    print "The computer returned: " + @all_pegs.shuffle.to_s + "\n"
-    return @all_pegs
-  end
-end  
+      print "The computer returned: " + @all_pegs.shuffle.to_s + "\n"
+      puts ""
+      return @all_pegs
+  end 
+end 
 
 #Player class
 
@@ -120,7 +147,7 @@ class Human
     while i < 5
       puts "What is the color of the #" + i.to_s + " ball? (white, red, yellow, blue, green, pink)"
         ball = gets.chomp().downcase().strip();
-        if color_list.any? {|color| color == ball }#ball == "blue" || ball == "pink" || ball == "white" || ball == "red" || ball == "green" || ball == "yellow"
+        if color_list.any? {|color| color == ball } # ball == "blue" || ball == "pink" || ball == "white" || ball == "red" || ball == "green" || ball == "yellow"
           @guessed_balls[i-1] = ball
           i += 1
         else
@@ -129,7 +156,6 @@ class Human
     end
     return @guessed_balls
   end
-
 end
 
 #Game class
@@ -143,9 +169,9 @@ class Game
   puts ""
   cmp = Computer.new
   human = Human.new
-  color_list = cmp.get_color_list
+  color_list = cmp.color_list
   # If the player is the code breaker
-  if player_choice == 'Code Breaker'
+  if player_choice.include?('Breaker')
     balls_picked = cmp.comp_choose_colors()
     puts "The balls have been selected 
           O O O O"
@@ -161,34 +187,23 @@ class Game
       guessed_balls = human.human_choose_colors(color_list)
       puts ""
       start.update_balls(guessed_balls)
-      all_pegs = cmp.check_guess(balls_picked, guessed_balls)
+      all_pegs = cmp.check_guess(balls_picked, guessed_balls, player_choice)
       guesses += 1
-      white_peg = 0
-      for i in 0..all_pegs.length()
-        if all_pegs[i].eql?("white peg")
-          white_peg += 1
-          if white_peg == 4
-            puts "You won!"
-            exit
-          end
-        end
-      end
     end
     puts "You lose"
     puts "The answer was: " + balls_picked.to_s
    exit
-  #If the player chose to be the code maker
+  # If the player chose to be the code maker
   else
     balls_picked = human.human_choose_colors(color_list)
     guesses = 1
     #Loops 12 times to allow computer to guess
     while guesses < 13
-      guess = cmp.comp_choose_colors()
+      guess = cmp.comp_guess_colors(guesses, all_pegs)
       puts "Turn: #" + guesses.to_s + " out of 12"
       start.update_balls(guess)
-      all_pegs = cmp.check_guess(balls_picked, guess)
+      all_pegs = cmp.check_guess(balls_picked, guess, player_choice)
       guesses += 1
-      cmp.comp_choose_colors(all_pegs)
     end
     puts "You won, the computer didn't figure out your answer!"
     exit
